@@ -74,6 +74,7 @@ import com.javier.auris.ui.utils.soundIcon
 import com.javier.auris.viewmodel.FavoritesViewModel
 import com.javier.auris.viewmodel.MixesViewModel
 import com.javier.auris.viewmodel.PlayerViewModel
+import com.javier.auris.viewmodel.SettingsViewModel
 
 private data class BottomNavItem(val label: String, val icon: ImageVector)
 
@@ -92,6 +93,7 @@ fun HomeScreen(
 ) {
     val favoritesViewModel: FavoritesViewModel = viewModel()
     val mixesViewModel: MixesViewModel = viewModel()
+    val settingsViewModel: SettingsViewModel = viewModel()
 
     val sounds       by viewModel.sounds.collectAsState()
     val currentSound by viewModel.currentSound.collectAsState()
@@ -172,7 +174,7 @@ fun HomeScreen(
                     mixesViewModel = mixesViewModel,
                     playerViewModel = viewModel,
                 )
-                3 -> SettingsPlaceholder()
+                3 -> SettingsScreen(viewModel = settingsViewModel)
             }
         }
     }
@@ -237,15 +239,6 @@ private fun SoundsTabContent(
                 )
             }
         }
-    }
-}
-
-// ── Ajustes placeholder ───────────────────────────────────────────────────────
-
-@Composable
-private fun SettingsPlaceholder() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Ajustes — próximamente", color = TextSecondary, fontSize = 15.sp)
     }
 }
 

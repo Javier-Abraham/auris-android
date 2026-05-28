@@ -3,12 +3,13 @@ package com.javier.auris.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
-private val AurisDarkColorScheme = darkColorScheme(
-    primary          = BlueBright,
+fun aurisColorScheme(accent: Color) = darkColorScheme(
+    primary          = accent,
     onPrimary        = Background,
-    primaryContainer = Blue,
-    secondary        = Accent,
+    primaryContainer = accent.copy(alpha = 0.3f),
+    secondary        = accent.copy(alpha = 0.8f),
     onSecondary      = Background,
     background       = Background,
     onBackground     = TextPrimary,
@@ -19,9 +20,14 @@ private val AurisDarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun AurisTheme(content: @Composable () -> Unit) {
+fun AurisTheme(
+    accentColorIndex: Int = 0,
+    content: @Composable () -> Unit,
+) {
+    val accent = accentColors.getOrElse(accentColorIndex) { AccentBlue }
     MaterialTheme(
-        colorScheme = AurisDarkColorScheme,
+        colorScheme = aurisColorScheme(accent),
+        typography  = AurisTypography,
         content     = content,
     )
 }

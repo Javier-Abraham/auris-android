@@ -50,14 +50,14 @@ fun SoundCard(
     modifier: Modifier = Modifier,
 ) {
     val borderMod = if (isCurrent)
-        Modifier.border(2.dp, BlueBright.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
+        Modifier.border(2.dp, BlueBright.copy(alpha = 0.8f), RoundedCornerShape(20.dp))
     else Modifier
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(20.dp))
             .then(borderMod)
             .clickable(onClick = onClick),
     ) {

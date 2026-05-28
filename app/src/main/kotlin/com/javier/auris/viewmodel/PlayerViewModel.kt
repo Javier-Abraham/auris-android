@@ -1,36 +1,48 @@
 package com.javier.auris.viewmodel
 
 import android.app.Application
+import android.content.ComponentName
 import android.net.Uri
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.javier.auris.AurisApp
 import com.javier.auris.data.SoundRepository
 import com.javier.auris.data.model.Sound
 import com.javier.auris.data.model.SoundCategory
+import com.javier.auris.service.AurisPlaybackService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val pkg          = application.packageName
     private val favoriteRepo = (application as AurisApp).favoriteRepository
+    private val settingsRepo = (application as AurisApp).settingsRepository
 
-    private val player = ExoPlayer.Builder(application).build().apply {
-        repeatMode = Player.REPEAT_MODE_ONE
-    }
+    // ── MediaController (async – connects to AurisPlaybackService) ────────────
+    private var controller: MediaController? = null
+    private var pendingAction: (() -> Unit)? = null
 
-    // Combines in-memory catalog with Room favorites so isFavorite is always persisted
+    private val controllerFuture = MediaController
+        .Builder(application, SessionToken(application, ComponentName(application, AurisPlaybackService::class.java)))
+        .buildAsync()
+
+    // ── Sounds – combines catalog with Room favorites ──────────────────────────
     val sounds: StateFlow<List<Sound>> = favoriteRepo.getFavoriteIds()
         .map { favIds ->
             val favSet = favIds.toSet()
@@ -38,10 +50,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SoundRepository.sounds)
 
-    private val _currentSound = MutableStateFlow<Sound?>(null)
-    val currentSound: StateFlow<Sound?> = _currentSound
+    // currentSoundId + sounds derive currentSound so isFavorite is always fresh
+    private val _currentSoundId = MutableStateFlow<Int?>(null)
+    val currentSound: StateFlow<Sound?> = combine(_currentSoundId, sounds) { id, list ->
+        list.find { it.id == id }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private val _isPlaying = MutableStateFlow(false)
+    private val _isPlaying    = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying
 
     private val _volume = MutableStateFlow(1f)
@@ -58,75 +73,91 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     private var timerJob: Job? = null
 
-    init {
-        player.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                _isPlaying.value = isPlaying
-            }
-            override fun onPlayerError(error: PlaybackException) {
-                Log.w("PlayerViewModel", "Playback error: ${error.message}")
-                _isPlaying.value = false
-            }
-        })
+    private val playerListener = object : Player.Listener {
+        override fun onIsPlayingChanged(playing: Boolean) { _isPlaying.value = playing }
+        override fun onPlayerError(error: PlaybackException) {
+            Log.w("PlayerVM", "Playback error: ${error.message}")
+            _isPlaying.value = false
+        }
     }
 
+    init {
+        controllerFuture.addListener({
+            try {
+                val ctrl = controllerFuture.get()
+                ctrl.addListener(playerListener)
+                controller = ctrl
+                // Apply saved default volume
+                viewModelScope.launch {
+                    val vol = settingsRepo.defaultVolume.first()
+                    _volume.value = vol
+                    ctrl.volume = vol
+                }
+                // Execute any command queued before controller was ready
+                pendingAction?.invoke()
+                pendingAction = null
+            } catch (e: Exception) {
+                Log.e("PlayerVM", "MediaController connection failed", e)
+            }
+        }, ContextCompat.getMainExecutor(application))
+    }
+
+    // ── Playback ──────────────────────────────────────────────────────────────
+
     fun selectAndPlay(sound: Sound) {
-        _currentSound.value = sound
-        val rawResId = sound.rawResId ?: return
-        val uri = Uri.parse("android.resource://${getApplication<Application>().packageName}/$rawResId")
-        player.setMediaItem(MediaItem.fromUri(uri))
-        player.repeatMode = Player.REPEAT_MODE_ONE
-        player.prepare()
-        player.play()
+        _currentSoundId.value = sound.id
+        val ctrl = controller
+        if (ctrl == null) { pendingAction = { doPlay(sound) }; return }
+        doPlay(sound)
+        applyDefaultTimer()
     }
 
     fun playMix(sounds: List<Sound>) {
         val playable = sounds.filter { it.rawResId != null }
         if (playable.isEmpty()) return
-        val pkg = getApplication<Application>().packageName
+        _currentSoundId.value = playable.first().id
+        val ctrl = controller ?: return
         val items = playable.map { s ->
             MediaItem.fromUri(Uri.parse("android.resource://$pkg/${s.rawResId}"))
         }
-        player.setMediaItems(items)
-        player.repeatMode = Player.REPEAT_MODE_ALL
-        player.prepare()
-        player.play()
-        _currentSound.value = playable.first()
+        ctrl.setMediaItems(items)
+        ctrl.repeatMode = Player.REPEAT_MODE_ALL
+        ctrl.prepare()
+        ctrl.play()
     }
 
     fun togglePlayPause() {
-        if (_currentSound.value?.rawResId == null) return
-        if (player.isPlaying) player.pause() else player.play()
+        val ctrl = controller ?: return
+        if (ctrl.isPlaying) ctrl.pause() else ctrl.play()
     }
 
     fun playNext() {
         val list = filteredList()
         if (list.isEmpty()) return
-        val idx = list.indexOfFirst { it.id == _currentSound.value?.id }
+        val idx = list.indexOfFirst { it.id == _currentSoundId.value }
         selectAndPlay(list[(idx + 1) % list.size])
     }
 
     fun playPrevious() {
         val list = filteredList()
         if (list.isEmpty()) return
-        val idx = list.indexOfFirst { it.id == _currentSound.value?.id }
+        val idx = list.indexOfFirst { it.id == _currentSoundId.value }
         selectAndPlay(list[if (idx <= 0) list.lastIndex else idx - 1])
     }
 
+    // ── Volume & Timer ────────────────────────────────────────────────────────
+
     fun setVolume(value: Float) {
         _volume.value = value
-        player.volume = value
+        controller?.volume = value
     }
 
     fun cycleTimer() {
-        val next = when (_timerMinutes.value) {
-            0    -> 15
-            15   -> 30
-            30   -> 60
-            else -> 0
-        }
+        val next = when (_timerMinutes.value) { 0 -> 15; 15 -> 30; 30 -> 60; else -> 0 }
         applyTimer(next)
     }
+
+    // ── Favorites ─────────────────────────────────────────────────────────────
 
     fun toggleFavorite(soundId: Int) {
         viewModelScope.launch {
@@ -135,8 +166,24 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun setCategory(category: SoundCategory?) {
-        _selectedCategory.value = category
+    fun setCategory(category: SoundCategory?) { _selectedCategory.value = category }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private fun doPlay(sound: Sound) {
+        val rawResId = sound.rawResId ?: return
+        val ctrl = controller ?: return
+        ctrl.setMediaItem(MediaItem.fromUri(Uri.parse("android.resource://$pkg/$rawResId")))
+        ctrl.repeatMode = Player.REPEAT_MODE_ONE
+        ctrl.prepare()
+        ctrl.play()
+    }
+
+    private fun applyDefaultTimer() {
+        viewModelScope.launch {
+            val minutes = settingsRepo.defaultTimer.first()
+            if (minutes > 0) applyTimer(minutes)
+        }
     }
 
     private fun applyTimer(minutes: Int) {
@@ -149,7 +196,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                     delay(1000)
                     _timerSecondsRemaining.value -= 1
                 }
-                player.pause()
+                controller?.pause()
                 _timerMinutes.value = 0
             }
         } else {
@@ -164,7 +211,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     override fun onCleared() {
         timerJob?.cancel()
-        player.release()
+        MediaController.releaseFuture(controllerFuture)
         super.onCleared()
     }
 }

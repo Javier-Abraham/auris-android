@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Viewport: 108 x 108 dp
+  Safe zone: círculo central 72dp (margen 18dp por cada lado).
+  Todo el diseño cabe dentro de (18,18)→(90,90).
+
+  LUNA CRECIENTE
+    Círculo exterior (iluminado): centro (46,38) r=17 → cubre (29,21)→(63,55)
+    Círculo sombra (fondo):       centro (53,35) r=15 → recorta el lado derecho
+    Resultado: creciente abierto hacia la derecha (tipo "C" invertida)
+
+  WAVEFORM SINUSOIDAL
+    Baseline y=65, x de 22 a 82.
+    Amplitud máxima en el centro (peak y=57, -8dp) y menor en los extremos
+    (peak y=60, -5dp), simulando la envolvente de una onda de audio real.
+    Usamos cúbicas Bezier para suavidad máxima.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ── Luna: círculo iluminado ──────────────────────────────────────── -->
+    <!--  M cx-r,cy  a r,r,0,1,0,2r,0  a r,r,0,1,0,-2r,0            -->
+    <path
+        android:fillColor="#C8D8E8"
+        android:pathData="M29,38 a17,17,0,1,0,34,0 a17,17,0,1,0,-34,0"/>
+
+    <!-- ── Luna: círculo sombra (color fondo) que crea el creciente ─────── -->
+    <path
+        android:fillColor="#0D1B2A"
+        android:pathData="M38,35 a15,15,0,1,0,30,0 a15,15,0,1,0,-30,0"/>
+
+    <!-- ── Waveform sinusoidal con envolvente en campana ────────────────── -->
+    <!--
+      Segmentos (baseline y=65):
+        22→34  peak   y=60  (amp 5)
+        34→46  trough y=72  (amp 7)
+        46→58  peak   y=57  (amp 8) ← centro, máxima amplitud
+        58→70  trough y=72  (amp 7)
+        70→82  peak   y=60  (amp 5)
+    -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#7EC8E3"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="
+            M 22,65
+            C 26,60 30,60 34,65
+            C 38,72 42,72 46,65
+            C 50,57 54,57 58,65
+            C 62,72 66,72 70,65
+            C 74,60 78,60 82,65"/>
+
+</vector>

@@ -15,6 +15,6 @@ data class Sound(
     val description: String,
     @RawRes val rawResId: Int,
     val category: SoundCategory,
-    @DrawableRes val imageRes: Int? = null,
+    @DrawableRes val imageRes: Int,
     var isFavorite: Boolean = false,
 )

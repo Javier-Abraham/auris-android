@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder: reemplazar con chimenea.jpg cuando esté disponible -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <gradient android:startColor="#4A1E0A" android:endColor="#1E0A04" android:angle="270"/>
-</shape>

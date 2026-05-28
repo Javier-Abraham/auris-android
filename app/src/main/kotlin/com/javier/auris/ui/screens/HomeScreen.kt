@@ -231,18 +231,12 @@ private fun SoundCard(
             .then(borderMod)
             .clickable(onClick = onClick),
     ) {
-        // Background: photo or gradient fallback
-        if (sound.imageRes != null) {
-            Image(
-                painter            = painterResource(sound.imageRes),
-                contentDescription = null,
-                modifier           = Modifier.fillMaxSize(),
-                contentScale       = ContentScale.Crop,
-            )
-        } else {
-            Box(modifier = Modifier.fillMaxSize().background(categoryGradient(sound.category)))
-        }
-
+        Image(
+            painter            = painterResource(sound.imageRes),
+            contentDescription = null,
+            modifier           = Modifier.fillMaxSize(),
+            contentScale       = ContentScale.Crop,
+        )
         // Scrim so text is always readable
         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.40f)))
 
@@ -321,17 +315,13 @@ private fun MiniPlayer(
                 .clip(RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            if (sound.imageRes != null) {
-                Image(
-                    painter            = painterResource(sound.imageRes),
-                    contentDescription = null,
-                    modifier           = Modifier.fillMaxSize(),
-                    contentScale       = ContentScale.Crop,
-                )
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.3f)))
-            } else {
-                Box(modifier = Modifier.fillMaxSize().background(categoryGradient(sound.category)))
-            }
+            Image(
+                painter            = painterResource(sound.imageRes),
+                contentDescription = null,
+                modifier           = Modifier.fillMaxSize(),
+                contentScale       = ContentScale.Crop,
+            )
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
             Icon(soundIcon(sound.id), null, tint = Color.White, modifier = Modifier.size(22.dp))
         }
 

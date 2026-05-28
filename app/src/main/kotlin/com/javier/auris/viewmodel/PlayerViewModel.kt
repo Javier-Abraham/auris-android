@@ -2,9 +2,11 @@ package com.javier.auris.viewmodel
 
 import android.app.Application
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.javier.auris.data.SoundRepository
@@ -50,20 +52,26 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _isPlaying.value = isPlaying
             }
+            override fun onPlayerError(error: PlaybackException) {
+                Log.w("PlayerViewModel", "Playback error (archivo placeholder?): ${error.message}")
+                _isPlaying.value = false
+            }
         })
     }
 
     fun selectAndPlay(sound: Sound) {
+        _currentSound.value = sound
+        val rawResId = sound.rawResId ?: return   // sin audio real: muestra UI pero no reproduce
         val uri = Uri.parse(
-            "android.resource://${getApplication<Application>().packageName}/${sound.rawResId}"
+            "android.resource://${getApplication<Application>().packageName}/$rawResId"
         )
         player.setMediaItem(MediaItem.fromUri(uri))
         player.prepare()
         player.play()
-        _currentSound.value = sound
     }
 
     fun togglePlayPause() {
+        if (_currentSound.value?.rawResId == null) return
         if (player.isPlaying) player.pause() else player.play()
     }
 

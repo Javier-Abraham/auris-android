@@ -13,8 +13,8 @@ data class Sound(
     val id: Int,
     val name: String,
     val description: String,
-    @RawRes val rawResId: Int,
     val category: SoundCategory,
     @DrawableRes val imageRes: Int,
+    @RawRes val rawResId: Int? = null,   // null mientras no haya audio real
     var isFavorite: Boolean = false,
 )

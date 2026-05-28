@@ -5,7 +5,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -59,12 +58,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.javier.auris.data.model.Sound
 import com.javier.auris.data.model.SoundCategory
 import com.javier.auris.ui.theme.Accent
@@ -76,7 +75,6 @@ import com.javier.auris.ui.theme.Surface
 import com.javier.auris.ui.theme.TextPrimary
 import com.javier.auris.ui.theme.TextSecondary
 import com.javier.auris.ui.utils.categoryDisplayName
-import com.javier.auris.ui.utils.categoryGradient
 import com.javier.auris.ui.utils.soundIcon
 import com.javier.auris.viewmodel.PlayerViewModel
 
@@ -231,16 +229,16 @@ private fun SoundCard(
             .then(borderMod)
             .clickable(onClick = onClick),
     ) {
-        Image(
-            painter            = painterResource(sound.imageRes),
+        // Coil: descarga/escala la imagen al tamaño real del composable,
+        // evita OOM que causaría painterResource() con fotos de cámara.
+        AsyncImage(
+            model              = sound.imageRes,
             contentDescription = null,
             modifier           = Modifier.fillMaxSize(),
             contentScale       = ContentScale.Crop,
         )
-        // Scrim so text is always readable
         Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.40f)))
 
-        // Content
         Column(
             modifier            = Modifier.fillMaxSize().padding(14.dp),
             verticalArrangement = Arrangement.SpaceBetween,
@@ -315,8 +313,8 @@ private fun MiniPlayer(
                 .clip(RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Image(
-                painter            = painterResource(sound.imageRes),
+            AsyncImage(
+                model              = sound.imageRes,
                 contentDescription = null,
                 modifier           = Modifier.fillMaxSize(),
                 contentScale       = ContentScale.Crop,

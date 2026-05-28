@@ -1,10 +1,8 @@
 package com.javier.auris.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,20 +35,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.javier.auris.ui.theme.Accent
 import com.javier.auris.ui.theme.BlueBright
 import com.javier.auris.ui.theme.TextPrimary
 import com.javier.auris.ui.theme.TextSecondary
 import com.javier.auris.ui.utils.categoryDisplayName
-import com.javier.auris.ui.utils.categoryGradient
 import com.javier.auris.ui.utils.soundIcon
 import com.javier.auris.viewmodel.PlayerViewModel
 
@@ -69,27 +67,27 @@ fun PlayerScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // ── Background ────────────────────────────────────────────────
-        Image(
-            painter            = painterResource(sound.imageRes),
+        // ── Background: Coil maneja el downscaling de la foto ─────────
+        AsyncImage(
+            model              = sound.imageRes,
             contentDescription = null,
             modifier           = Modifier.fillMaxSize(),
             contentScale       = ContentScale.Crop,
         )
-        // Gradient overlay: light at top, dark at bottom for controls
+        // Gradiente: translúcido arriba, oscuro abajo para controles
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f   to Color.Black.copy(alpha = 0.25f),
+                        0f    to Color.Black.copy(alpha = 0.25f),
                         0.45f to Color.Black.copy(alpha = 0.50f),
-                        1f   to Color.Black.copy(alpha = 0.82f),
+                        1f    to Color.Black.copy(alpha = 0.82f),
                     )
                 ),
         )
 
-        // ── UI ─────────────────────────────────────────────────────────
+        // ── UI ────────────────────────────────────────────────────────
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -129,7 +127,6 @@ fun PlayerScreen(
                 horizontalAlignment   = Alignment.CenterHorizontally,
                 verticalArrangement   = Arrangement.SpaceEvenly,
             ) {
-                // Large icon circle
                 Box(
                     modifier = Modifier
                         .size(200.dp)
@@ -137,44 +134,26 @@ fun PlayerScreen(
                         .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector        = soundIcon(sound.id),
-                        contentDescription = null,
-                        tint               = Color.White,
-                        modifier           = Modifier.size(88.dp),
-                    )
+                    Icon(soundIcon(sound.id), null, tint = Color.White, modifier = Modifier.size(88.dp))
                 }
 
-                // Name & description
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text(
-                        text       = sound.name,
-                        fontSize   = 30.sp,
-                        fontWeight = FontWeight.Bold,
-                        color      = TextPrimary,
-                        textAlign  = TextAlign.Center,
-                    )
-                    Text(
-                        text       = sound.description,
-                        fontSize   = 14.sp,
-                        color      = TextSecondary,
-                        textAlign  = TextAlign.Center,
-                        lineHeight = 22.sp,
-                    )
+                    Text(sound.name, fontSize = 30.sp, fontWeight = FontWeight.Bold,
+                        color = TextPrimary, textAlign = TextAlign.Center)
+                    Text(sound.description, fontSize = 14.sp, color = TextSecondary,
+                        textAlign = TextAlign.Center, lineHeight = 22.sp)
                 }
 
-                // Volume
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Volumen", color = TextSecondary, fontSize = 12.sp)
                     Row(
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(Icons.Rounded.VolumeDown, null, tint = TextSecondary,
-                            modifier = Modifier.size(22.dp))
+                        Icon(Icons.Rounded.VolumeDown, null, tint = TextSecondary, modifier = Modifier.size(22.dp))
                         Slider(
                             value         = volume,
                             onValueChange = viewModel::setVolume,
@@ -185,12 +164,10 @@ fun PlayerScreen(
                                 inactiveTrackColor = Color.White.copy(alpha = 0.2f),
                             ),
                         )
-                        Icon(Icons.Rounded.VolumeUp, null, tint = TextSecondary,
-                            modifier = Modifier.size(22.dp))
+                        Icon(Icons.Rounded.VolumeUp, null, tint = TextSecondary, modifier = Modifier.size(22.dp))
                     }
                 }
 
-                // Playback controls + timer
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(28.dp),
@@ -201,8 +178,7 @@ fun PlayerScreen(
                         verticalAlignment     = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = viewModel::playPrevious, modifier = Modifier.size(56.dp)) {
-                            Icon(Icons.Rounded.SkipPrevious, "Anterior",
-                                tint = TextPrimary, modifier = Modifier.size(40.dp))
+                            Icon(Icons.Rounded.SkipPrevious, "Anterior", tint = TextPrimary, modifier = Modifier.size(40.dp))
                         }
                         Box(
                             modifier = Modifier
@@ -212,20 +188,17 @@ fun PlayerScreen(
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector        = if (isPlaying) Icons.Rounded.Pause
-                                                     else Icons.Rounded.PlayArrow,
+                                imageVector        = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 contentDescription = null,
                                 tint               = Color.White,
                                 modifier           = Modifier.size(40.dp),
                             )
                         }
                         IconButton(onClick = viewModel::playNext, modifier = Modifier.size(56.dp)) {
-                            Icon(Icons.Rounded.SkipNext, "Siguiente",
-                                tint = TextPrimary, modifier = Modifier.size(40.dp))
+                            Icon(Icons.Rounded.SkipNext, "Siguiente", tint = TextPrimary, modifier = Modifier.size(40.dp))
                         }
                     }
 
-                    // Timer
                     Row(
                         modifier = Modifier
                             .background(Color.White.copy(alpha = 0.1f), CircleShape)
@@ -234,11 +207,9 @@ fun PlayerScreen(
                         verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(
-                            Icons.Rounded.Timer, null,
-                            tint     = if (timerMinutes > 0) Accent else TextSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
+                        Icon(Icons.Rounded.Timer, null,
+                            tint = if (timerMinutes > 0) Accent else TextSecondary,
+                            modifier = Modifier.size(18.dp))
                         Text(
                             text       = timerLabel(timerMinutes, timerSecondsRemaining),
                             color      = if (timerMinutes > 0) Accent else TextSecondary,

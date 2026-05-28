@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Auris</string>
+
+    <!-- Lluvia -->
+    <string name="sound_lluvia">Lluvia suave</string>
+    <string name="sound_lluvia_desc">El relajante sonido de la lluvia cayendo sobre el techo</string>
+
+    <!-- Océano -->
+    <string name="sound_oceano">Océano</string>
+    <string name="sound_oceano_desc">Olas del mar rompiendo suavemente en la orilla</string>
+
+    <!-- Bosque -->
+    <string name="sound_bosque">Bosque</string>
+    <string name="sound_bosque_desc">Pájaros y brisa entre los árboles de un bosque tranquilo</string>
+
+    <!-- Tormenta -->
+    <string name="sound_tormenta">Tormenta</string>
+    <string name="sound_tormenta_desc">Lluvia intensa acompañada de truenos lejanos</string>
+
+    <!-- Fuego -->
+    <string name="sound_fuego">Chimenea</string>
+    <string name="sound_fuego_desc">El crepitar de leños ardiendo en una chimenea acogedora</string>
+
+    <!-- Viento -->
+    <string name="sound_viento">Viento</string>
+    <string name="sound_viento_desc">La suave brisa del viento entre hojas y ramas</string>
+
+    <!-- Ruido blanco -->
+    <string name="sound_ruido_blanco">Ruido blanco</string>
+    <string name="sound_ruido_blanco_desc">Sonido neutro y uniforme para bloquear distracciones</string>
+
+    <!-- Café -->
+    <string name="sound_cafe">Cafetería</string>
+    <string name="sound_cafe_desc">El murmullo suave de una cafetería acogedora</string>
+</resources>

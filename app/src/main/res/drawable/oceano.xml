@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder: reemplazar con oceano.jpg cuando esté disponible -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient android:startColor="#0B3D5E" android:endColor="#051825" android:angle="270"/>
+</shape>

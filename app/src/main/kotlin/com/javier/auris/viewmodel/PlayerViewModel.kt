@@ -9,23 +9,34 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.javier.auris.AurisApp
 import com.javier.auris.data.SoundRepository
 import com.javier.auris.data.model.Sound
 import com.javier.auris.data.model.SoundCategory
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val favoriteRepo = (application as AurisApp).favoriteRepository
 
     private val player = ExoPlayer.Builder(application).build().apply {
         repeatMode = Player.REPEAT_MODE_ONE
     }
 
-    private val _sounds = MutableStateFlow(SoundRepository.sounds)
-    val sounds: StateFlow<List<Sound>> = _sounds
+    // Combines in-memory catalog with Room favorites so isFavorite is always persisted
+    val sounds: StateFlow<List<Sound>> = favoriteRepo.getFavoriteIds()
+        .map { favIds ->
+            val favSet = favIds.toSet()
+            SoundRepository.sounds.map { it.copy(isFavorite = it.id in favSet) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SoundRepository.sounds)
 
     private val _currentSound = MutableStateFlow<Sound?>(null)
     val currentSound: StateFlow<Sound?> = _currentSound
@@ -53,7 +64,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 _isPlaying.value = isPlaying
             }
             override fun onPlayerError(error: PlaybackException) {
-                Log.w("PlayerViewModel", "Playback error (archivo placeholder?): ${error.message}")
+                Log.w("PlayerViewModel", "Playback error: ${error.message}")
                 _isPlaying.value = false
             }
         })
@@ -61,13 +72,26 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun selectAndPlay(sound: Sound) {
         _currentSound.value = sound
-        val rawResId = sound.rawResId ?: return   // sin audio real: muestra UI pero no reproduce
-        val uri = Uri.parse(
-            "android.resource://${getApplication<Application>().packageName}/$rawResId"
-        )
+        val rawResId = sound.rawResId ?: return
+        val uri = Uri.parse("android.resource://${getApplication<Application>().packageName}/$rawResId")
         player.setMediaItem(MediaItem.fromUri(uri))
+        player.repeatMode = Player.REPEAT_MODE_ONE
         player.prepare()
         player.play()
+    }
+
+    fun playMix(sounds: List<Sound>) {
+        val playable = sounds.filter { it.rawResId != null }
+        if (playable.isEmpty()) return
+        val pkg = getApplication<Application>().packageName
+        val items = playable.map { s ->
+            MediaItem.fromUri(Uri.parse("android.resource://$pkg/${s.rawResId}"))
+        }
+        player.setMediaItems(items)
+        player.repeatMode = Player.REPEAT_MODE_ALL
+        player.prepare()
+        player.play()
+        _currentSound.value = playable.first()
     }
 
     fun togglePlayPause() {
@@ -105,12 +129,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun toggleFavorite(soundId: Int) {
-        val updated = _sounds.value.map { s ->
-            if (s.id == soundId) s.copy(isFavorite = !s.isFavorite) else s
-        }
-        _sounds.value = updated
-        if (_currentSound.value?.id == soundId) {
-            _currentSound.value = updated.find { it.id == soundId }
+        viewModelScope.launch {
+            val isFav = sounds.value.find { it.id == soundId }?.isFavorite ?: false
+            if (isFav) favoriteRepo.remove(soundId) else favoriteRepo.add(soundId)
         }
     }
 
@@ -137,8 +158,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun filteredList(): List<Sound> {
-        val cat = _selectedCategory.value ?: return _sounds.value
-        return _sounds.value.filter { it.category == cat }
+        val cat = _selectedCategory.value ?: return sounds.value
+        return sounds.value.filter { it.category == cat }
     }
 
     override fun onCleared() {
